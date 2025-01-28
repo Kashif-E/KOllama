@@ -33,6 +33,9 @@ Kollama is a modern, desktop chat interface for Ollama models built with Kotlin 
 ![art2.png](art/art2.png)
 ![art3.png](art/art3.png)
 
+## Mack Installer
+
+https://drive.google.com/file/d/11_hz3-sKSTjTnqQ3wgwt7qI8EBqSQcwV/view?usp=sharing
 ## Prerequisites
 
 - JDK 17 or higher
