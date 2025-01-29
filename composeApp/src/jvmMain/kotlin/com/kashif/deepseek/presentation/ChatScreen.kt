@@ -291,59 +291,58 @@ fun ChatInput(
     }
 }
 
-
 @Composable
 fun rememberMarkdownTypography(
     colorScheme: ColorScheme = MaterialTheme.colorScheme,
     typography: Typography = MaterialTheme.typography
 ): MarkdownTypography = remember(colorScheme, typography) {
     DefaultMarkdownTypography(
-        h1 = typography.headlineLarge.copy(
+        h1 = typography.headlineSmall.copy(
             fontWeight = FontWeight.Bold,
             color = colorScheme.onSurface,
-            lineHeight = 40.sp,
-            fontSize = 32.sp,
-            background = Color.Transparent
-        ),
-        h2 = typography.headlineMedium.copy(
-            fontWeight = FontWeight.SemiBold,
-            color = colorScheme.onSurface,
-            lineHeight = 36.sp,
-            fontSize = 28.sp,
-            background = Color.Transparent
-        ),
-        h3 = typography.headlineSmall.copy(
-            fontWeight = FontWeight.Medium,
-            color = colorScheme.onSurface,
-            lineHeight = 32.sp,
+            lineHeight = 28.sp,
             fontSize = 24.sp,
             background = Color.Transparent
         ),
-        h4 = typography.titleLarge.copy(
-            fontWeight = FontWeight.Medium,
+        h2 = typography.bodyLarge.copy(
+            fontWeight = FontWeight.SemiBold,
             color = colorScheme.onSurface,
-            lineHeight = 28.sp,
+            lineHeight = 26.sp,
             fontSize = 22.sp,
             background = Color.Transparent
         ),
-        h5 = typography.titleMedium.copy(
+        h3 = typography.bodyMedium.copy(
             fontWeight = FontWeight.Medium,
             color = colorScheme.onSurface,
             lineHeight = 24.sp,
             fontSize = 20.sp,
             background = Color.Transparent
         ),
-        h6 = typography.titleSmall.copy(
+        h4 = typography.bodySmall.copy(
             fontWeight = FontWeight.Medium,
             color = colorScheme.onSurface,
             lineHeight = 22.sp,
             fontSize = 18.sp,
             background = Color.Transparent
         ),
-        text = typography.bodyLarge.copy(
+        h5 = typography.labelLarge.copy(
+            fontWeight = FontWeight.Medium,
             color = colorScheme.onSurface,
-            lineHeight = 24.sp,
+            lineHeight = 20.sp,
+            fontSize = 17.sp,
+            background = Color.Transparent
+        ),
+        h6 = typography.labelSmall.copy(
+            fontWeight = FontWeight.Medium,
+            color = colorScheme.onSurface,
+            lineHeight = 20.sp,
             fontSize = 16.sp,
+            background = Color.Transparent
+        ),
+        text = typography.bodySmall.copy(
+            color = colorScheme.onSurface,
+            lineHeight = 20.sp,
+            fontSize = 15.sp,
             background = Color.Transparent
         ),
         code = typography.bodyMedium.copy(
@@ -351,51 +350,51 @@ fun rememberMarkdownTypography(
             color = colorScheme.onSurfaceVariant,
             lineHeight = 20.sp,
             fontSize = 14.sp,
-            background = Color.Transparent
+            background = colorScheme.surfaceVariant.copy(alpha = 0.1f)
         ),
         inlineCode = typography.bodyMedium.copy(
             fontFamily = FontFamily.Monospace,
             color = colorScheme.primary,
             lineHeight = 20.sp,
             fontSize = 14.sp,
-            background = Color.Transparent
+            background = colorScheme.surfaceVariant.copy(alpha = 0.1f)
         ),
         quote = typography.bodyLarge.copy(
             color = colorScheme.onSurfaceVariant,
             fontStyle = FontStyle.Italic,
-            lineHeight = 24.sp,
-            fontSize = 16.sp,
+            lineHeight = 22.sp,
+            fontSize = 15.sp,
             background = Color.Transparent
         ),
         paragraph = typography.bodyLarge.copy(
             color = colorScheme.onSurface,
-            lineHeight = 24.sp,
-            fontSize = 16.sp,
+            lineHeight = 22.sp,
+            fontSize = 15.sp,
             background = Color.Transparent
         ),
         ordered = typography.bodyLarge.copy(
             color = colorScheme.onSurface,
-            lineHeight = 24.sp,
-            fontSize = 16.sp,
+            lineHeight = 22.sp,
+            fontSize = 15.sp,
             background = Color.Transparent
         ),
         bullet = typography.bodyLarge.copy(
             color = colorScheme.onSurface,
-            lineHeight = 24.sp,
-            fontSize = 16.sp,
+            lineHeight = 22.sp,
+            fontSize = 15.sp,
             background = Color.Transparent
         ),
         list = typography.bodyLarge.copy(
             color = colorScheme.onSurface,
-            lineHeight = 24.sp,
-            fontSize = 16.sp,
+            lineHeight = 22.sp,
+            fontSize = 15.sp,
             background = Color.Transparent
         ),
         link = typography.bodyLarge.copy(
             color = colorScheme.primary,
             textDecoration = TextDecoration.Underline,
-            lineHeight = 24.sp,
-            fontSize = 16.sp,
+            lineHeight = 22.sp,
+            fontSize = 15.sp,
             background = Color.Transparent
         )
     )

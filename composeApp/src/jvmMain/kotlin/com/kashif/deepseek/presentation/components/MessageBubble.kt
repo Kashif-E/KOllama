@@ -117,6 +117,7 @@ fun MessageBubble(
                                 codeBlock = highlightedCodeBlock,
                                 codeFence = highlightedCodeFence
                             ),
+                            typography = typography,
                             dimens = markdownDimens(
                                 dividerThickness = 1.dp,
                                 codeBackgroundCornerSize = 12.dp,
