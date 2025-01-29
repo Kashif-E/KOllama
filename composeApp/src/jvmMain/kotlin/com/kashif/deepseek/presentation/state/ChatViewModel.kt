@@ -38,7 +38,11 @@ class ChatViewModel(
         viewModelScope.launch {
             try {
                 updateState { it.copy(isLoading = true) }
-                val models = ollamaService.listModels()
+                val models = ollamaService.listModels().fold(onFailure = {
+                    emptyList()
+                }, onSuccess = {
+                    it
+                })
                 updateState {
                     it.copy(
                         availableModels = models,
@@ -170,16 +174,13 @@ class ChatViewModel(
 
 
     private fun updateThinkingState(content: String) {
-        val formattedContent = """
-            > 🤔 Thinking...
-            > ${content.split("\n").joinToString("\n> ")}
-        """.trimIndent()
+
 
         updateState {
             it.copy(
                 thinkingMessage = ChatMessage(
                     id = "thinking-${System.currentTimeMillis()}",
-                    content = formattedContent,
+                    content = "\uD83E\uDD14 Thinking...$content",
                     isUser = false,
                     sessionId = "thinking",
                     status = MessageStatus.SENDING
