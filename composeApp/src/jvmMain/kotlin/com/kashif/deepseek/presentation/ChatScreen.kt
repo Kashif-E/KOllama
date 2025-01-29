@@ -302,92 +302,104 @@ fun rememberMarkdownTypography(
             fontWeight = FontWeight.Bold,
             color = colorScheme.onSurface,
             lineHeight = 40.sp,
-            fontSize = 32.sp
+            fontSize = 32.sp,
+            background = Color.Transparent
         ),
         h2 = typography.headlineMedium.copy(
             fontWeight = FontWeight.SemiBold,
             color = colorScheme.onSurface,
             lineHeight = 36.sp,
-            fontSize = 28.sp
+            fontSize = 28.sp,
+            background = Color.Transparent
         ),
         h3 = typography.headlineSmall.copy(
             fontWeight = FontWeight.Medium,
             color = colorScheme.onSurface,
             lineHeight = 32.sp,
-            fontSize = 24.sp
+            fontSize = 24.sp,
+            background = Color.Transparent
         ),
         h4 = typography.titleLarge.copy(
             fontWeight = FontWeight.Medium,
             color = colorScheme.onSurface,
             lineHeight = 28.sp,
-            fontSize = 22.sp
+            fontSize = 22.sp,
+            background = Color.Transparent
         ),
         h5 = typography.titleMedium.copy(
             fontWeight = FontWeight.Medium,
             color = colorScheme.onSurface,
             lineHeight = 24.sp,
-            fontSize = 20.sp
+            fontSize = 20.sp,
+            background = Color.Transparent
         ),
         h6 = typography.titleSmall.copy(
             fontWeight = FontWeight.Medium,
             color = colorScheme.onSurface,
             lineHeight = 22.sp,
-            fontSize = 18.sp
+            fontSize = 18.sp,
+            background = Color.Transparent
         ),
         text = typography.bodyLarge.copy(
             color = colorScheme.onSurface,
             lineHeight = 24.sp,
-            fontSize = 16.sp
+            fontSize = 16.sp,
+            background = Color.Transparent
         ),
         code = typography.bodyMedium.copy(
             fontFamily = FontFamily.Monospace,
             color = colorScheme.onSurfaceVariant,
-            background = colorScheme.surfaceVariant.copy(alpha = 0.5f),
             lineHeight = 20.sp,
-            fontSize = 14.sp
+            fontSize = 14.sp,
+            background = Color.Transparent
         ),
         inlineCode = typography.bodyMedium.copy(
             fontFamily = FontFamily.Monospace,
             color = colorScheme.primary,
-            background = colorScheme.surfaceVariant.copy(alpha = 0.3f),
             lineHeight = 20.sp,
-            fontSize = 14.sp
+            fontSize = 14.sp,
+            background = Color.Transparent
         ),
         quote = typography.bodyLarge.copy(
             color = colorScheme.onSurfaceVariant,
             fontStyle = FontStyle.Italic,
             lineHeight = 24.sp,
-            fontSize = 16.sp
+            fontSize = 16.sp,
+            background = Color.Transparent
         ),
         paragraph = typography.bodyLarge.copy(
             color = colorScheme.onSurface,
             lineHeight = 24.sp,
-            fontSize = 16.sp
+            fontSize = 16.sp,
+            background = Color.Transparent
         ),
         ordered = typography.bodyLarge.copy(
             color = colorScheme.onSurface,
             lineHeight = 24.sp,
-            fontSize = 16.sp
+            fontSize = 16.sp,
+            background = Color.Transparent
         ),
         bullet = typography.bodyLarge.copy(
             color = colorScheme.onSurface,
             lineHeight = 24.sp,
-            fontSize = 16.sp
+            fontSize = 16.sp,
+            background = Color.Transparent
         ),
         list = typography.bodyLarge.copy(
             color = colorScheme.onSurface,
             lineHeight = 24.sp,
-            fontSize = 16.sp
+            fontSize = 16.sp,
+            background = Color.Transparent
         ),
         link = typography.bodyLarge.copy(
             color = colorScheme.primary,
             textDecoration = TextDecoration.Underline,
             lineHeight = 24.sp,
-            fontSize = 16.sp
+            fontSize = 16.sp,
+            background = Color.Transparent
         )
     )
 }
-
 @Composable
 fun ButtonBackground(
     modifier: Modifier = Modifier,

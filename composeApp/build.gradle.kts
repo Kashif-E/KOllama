@@ -33,9 +33,8 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(libs.composeIcons.featherIcons)
             implementation(libs.sqlite.bundled)
-            implementation("com.halilibo.compose-richtext:richtext-commonmark:1.0.0-alpha02")
-            implementation("com.halilibo.compose-richtext:richtext-ui-material3:1.0.0-alpha02")
             implementation("com.mikepenz:multiplatform-markdown-renderer-m3:0.29.0")
+            implementation("com.mikepenz:multiplatform-markdown-renderer-code:0.29.0")
         }
 
         commonTest.dependencies {

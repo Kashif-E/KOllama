@@ -32,6 +32,9 @@ import androidx.compose.ui.unit.dp
 import com.kashif.deepseek.domain.model.ChatMessage
 import com.kashif.deepseek.domain.model.MessageStatus
 import com.kashif.deepseek.presentation.rememberMarkdownTypography
+import com.mikepenz.markdown.compose.components.markdownComponents
+import com.mikepenz.markdown.compose.elements.highlightedCodeBlock
+import com.mikepenz.markdown.compose.elements.highlightedCodeFence
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.model.markdownDimens
 import com.mikepenz.markdown.model.markdownPadding
@@ -110,7 +113,10 @@ fun MessageBubble(
                         Markdown(
                             message.content,
                             modifier = Modifier.wrapContentWidth(),
-                            typography = typography,
+                            components = markdownComponents(
+                                codeBlock = highlightedCodeBlock,
+                                codeFence = highlightedCodeFence
+                            ),
                             dimens = markdownDimens(
                                 dividerThickness = 1.dp,
                                 codeBackgroundCornerSize = 12.dp,
