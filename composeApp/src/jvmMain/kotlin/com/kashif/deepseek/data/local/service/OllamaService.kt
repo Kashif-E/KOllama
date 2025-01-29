@@ -1,160 +1,205 @@
 package com.kashif.deepseek.data.local.service
 
 
+import com.kashif.deepseek.data.model.OllamaModelsResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import java.io.BufferedReader
+import java.io.PrintWriter
+import java.net.Socket
+import java.nio.charset.StandardCharsets
 
-class OllamaService {
-    private val ollamaPath = "/usr/local/bin/ollama"
+class OllamaService(
+    private val host: String = "localhost",
+    private val port: Int = 11434
+) {
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        explicitNulls = false
+    }
 
+    private fun createSocket(): Socket = Socket(host, port)
 
-    private fun cleanOutput(text: String): String {
-        if (text.isBlank()) return ""
-        println(text)
-        return text
-            .replace(Regex("[⠀-⣿]"), "")
-            .replace(Regex("\\u001B\\[[0-9;?]*[ -/]*[@-~]"), "")
-            .replace(Regex("[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F]"), "")
-            .replace(Regex("\\d+[l]"), "")
+    private fun buildHttpRequest(
+        method: String,
+        path: String,
+        body: String? = null,
+        headers: Map<String, String> = emptyMap()
+    ): String {
+        val requestBuilder = StringBuilder()
+        requestBuilder.append("$method $path HTTP/1.1\r\n")
+        requestBuilder.append("Host: $host\r\n")
 
+        if (body != null) {
+            requestBuilder.append("Content-Type: application/json\r\n")
+            requestBuilder.append("Content-Length: ${body.toByteArray(StandardCharsets.UTF_8).size}\r\n")
+        }
 
-            .replace(Regex("\\.\\s*###"), ".\n\n###")
-            .replace(Regex("```"), "\n```\n")
-            .replace(Regex("\\.\\s*\\*"), ".\n\n*")
-            .replace(Regex("\\s{2,}"), " ")
+        headers.forEach { (key, value) ->
+            requestBuilder.append("$key: $value\r\n")
+        }
 
+        requestBuilder.append("\r\n")
+        if (body != null) {
+            requestBuilder.append(body)
+        }
 
+        return requestBuilder.toString()
+    }
 
+    private fun extractResponseBody(reader: BufferedReader): String {
+        var line: String?
+        var contentLength = 0
+
+        // Read headers
+        while (true) {
+            line = reader.readLine()
+            if (line == null || line.isEmpty()) break
+
+            if (line.lowercase().startsWith("content-length:")) {
+                contentLength = line.substring(15).trim().toInt()
+            }
+        }
+
+        // Read body
+        if (contentLength > 0) {
+            val buffer = CharArray(contentLength)
+            reader.read(buffer, 0, contentLength)
+            return String(buffer)
+        }
+
+        // For chunked or unspecified length, read until connection closes
+        return buildString {
+            while (true) {
+                val char = reader.read()
+                if (char == -1) break
+                append(char.toChar())
+            }
+        }
     }
 
     fun chat(model: String, prompt: String): Flow<String> = flow {
-        try {
-            println("Starting Ollama process for model: $model")
-            val process = ProcessBuilder(ollamaPath, "run", model)
-                .redirectErrorStream(true)
-                .start()
+        createSocket().use { socket ->
+            val writer = PrintWriter(socket.getOutputStream())
+            val reader = BufferedReader(socket.getInputStream().reader())
 
-            println("Ollama process started with PID: ${process.pid()}")
+            val chatRequest = ChatRequest(model, prompt)
+            val requestBody = json.encodeToString(ChatRequest.serializer(), chatRequest)
 
-            process.outputStream.bufferedWriter().use { writer ->
-                println("Writing prompt to Ollama process: $prompt")
-                writer.write(prompt)
-                writer.newLine()
-                writer.flush()
-                println("Prompt written and flushed to Ollama process")
+            val request = buildHttpRequest(
+                method = "POST",
+                path = "/api/generate",
+                body = requestBody
+            )
+
+            writer.print(request)
+            writer.flush()
+
+            // Skip HTTP headers
+            var line: String?
+            while (true) {
+                line = reader.readLine()
+                if (line == null || line.isEmpty()) break
             }
 
-            process.inputStream.bufferedReader().use { reader ->
-                println("Starting to read output from Ollama process")
-                reader.lineSequence()
-                    .map { cleanOutput(it) }
-                    .filter { it.isNotBlank() }
-                    .forEach { line ->
-                        if (line.isNotBlank()) {
-                            println("Emitting line from Ollama: $line")
-                            emit(line)
+            // Read and emit streaming response
+            while (true) {
+                line = reader.readLine()
+                if (line == null) break
+
+                if (line.isNotBlank()) {
+                    try {
+                        val response = json.decodeFromString(ChatResponse.serializer(), line)
+                        response.response?.let {
+                            if (it.isNotBlank()) emit(it)
                         }
+                        if (response.done) break
+                    } catch (e: Exception) {
+                        // Skip malformed JSON
+                        continue
                     }
-                println("Finished reading output from Ollama process")
+                }
             }
-
-            val exitCode = process.waitFor()
-            println("Ollama process exited with code: $exitCode")
-            if (exitCode != 0) {
-                throw RuntimeException("Ollama process failed with exit code $exitCode")
-            }
-        } catch (e: Exception) {
-            println("Error during Ollama chat: ${e.message}")
-            throw RuntimeException("Chat failed: ${e.message}")
         }
     }.flowOn(Dispatchers.IO)
 
-    suspend fun listModels(): List<String> = withContext(Dispatchers.IO) {
-        try {
-            val process = ProcessBuilder(ollamaPath, "list")
-                .redirectErrorStream(true)
-                .start()
+    suspend fun listModels(): List<OllamaModel> = withContext(Dispatchers.IO) {
+        createSocket().use { socket ->
+            val writer = PrintWriter(socket.getOutputStream())
+            val reader = BufferedReader(socket.getInputStream().reader())
 
-            process.inputStream.bufferedReader().use { reader ->
-                reader.readLines()
-                    .asSequence()
-                    .map { cleanOutput(it) }
-                    .filter { it.isNotBlank() }
-                    .map { it.split("\\s+".toRegex()).first() }
-                    .filter { it.isNotBlank() }
-                    .toList()
+            val request = buildHttpRequest(
+                method = "GET",
+                path = "/api/tags"
+            )
+
+            writer.print(request)
+            writer.flush()
+
+            val response = extractResponseBody(reader)
+            try {
+                val modelsResponse =
+                    json.decodeFromString(OllamaModelsResponse.serializer(), response)
+                modelsResponse.models
+            } catch (e: Exception) {
+                println("Error decoding response: ${e.message}")
+                emptyList()
             }
-        } catch (e: Exception) {
-            throw RuntimeException("Failed to list models: ${e.message}")
         }
     }
 
-
     suspend fun pullModel(modelName: String) = withContext(Dispatchers.IO) {
-        try {
-            val process = ProcessBuilder(ollamaPath, "pull", modelName)
-                .redirectErrorStream(true)
-                .start()
+        createSocket().use { socket ->
+            val writer = PrintWriter(socket.getOutputStream())
 
-            val exitCode = process.waitFor()
-            if (exitCode != 0) {
-                throw RuntimeException("Failed to pull model: Process exited with code $exitCode")
-            }
-        } catch (e: Exception) {
-            throw RuntimeException("Failed to pull model: ${e.message}")
+            val requestBody = """{"name": "$modelName"}"""
+            val request = buildHttpRequest(
+                method = "POST",
+                path = "/api/pull",
+                body = requestBody
+            )
+
+            writer.print(request)
+            writer.flush()
         }
     }
 
     suspend fun removeModel(modelName: String) = withContext(Dispatchers.IO) {
-        try {
-            val process = ProcessBuilder(ollamaPath, "rm", modelName)
-                .redirectErrorStream(true)
-                .start()
+        createSocket().use { socket ->
+            val writer = PrintWriter(socket.getOutputStream())
 
-            val exitCode = process.waitFor()
-            if (exitCode != 0) {
-                throw RuntimeException("Failed to remove model: Process exited with code $exitCode")
-            }
-        } catch (e: Exception) {
-            throw RuntimeException("Failed to remove model: ${e.message}")
+            val requestBody = """{"name": "$modelName"}"""
+            val request = buildHttpRequest(
+                method = "DELETE",
+                path = "/api/delete",
+                body = requestBody
+            )
+
+            writer.print(request)
+            writer.flush()
         }
     }
 
-    suspend fun showModelInfo(modelName: String): String = withContext(Dispatchers.IO) {
-        try {
-            val process = ProcessBuilder(ollamaPath, "show", modelName)
-                .redirectErrorStream(true)
-                .start()
+    suspend fun showModelInfo(modelName: String): OllamaModel = withContext(Dispatchers.IO) {
+        createSocket().use { socket ->
+            val writer = PrintWriter(socket.getOutputStream())
+            val reader = BufferedReader(socket.getInputStream().reader())
 
-            process.inputStream.bufferedReader().use { reader ->
-                val response = reader.readText()
-                if (process.waitFor() != 0) {
-                    throw RuntimeException("Failed to show model info")
-                }
-                response
-            }
-        } catch (e: Exception) {
-            throw RuntimeException("Failed to show model info: ${e.message}")
+            val request = buildHttpRequest(
+                method = "GET",
+                path = "/api/show?name=$modelName"
+            )
+
+            writer.print(request)
+            writer.flush()
+
+            val response = extractResponseBody(reader)
+            json.decodeFromString(OllamaModel.serializer(), response)
         }
-    }
-
-
-    fun setGpuLayers(layers: Int) {
-        System.setProperty("OLLAMA_GPU_LAYERS", layers.toString())
-    }
-
-    fun setCudaDevices(devices: String) {
-        System.setProperty("CUDA_VISIBLE_DEVICES", devices)
-    }
-
-    fun setMaxRamUsage(ramMb: Int) {
-        System.setProperty("OLLAMA_RAM", ramMb.toString())
-    }
-
-    fun setMaxGpuMemory(memoryMb: Int) {
-        System.setProperty("OLLAMA_GPU_MEM", memoryMb.toString())
     }
 }
