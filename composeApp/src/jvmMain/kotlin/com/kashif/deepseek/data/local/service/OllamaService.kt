@@ -148,13 +148,17 @@ class OllamaService(
 
 
         while (true) {
-            line = reader.readLine()
-            if (line == null || line.isEmpty()) break
+            line = withContext(Dispatchers.IO) {
+                reader.readLine()
+            }
+            if (line.isNullOrEmpty()) break
         }
 
 
         while (true) {
-            line = reader.readLine()
+            line = withContext(Dispatchers.IO) {
+                reader.readLine()
+            }
             if (line == null) break
 
             if (line.isNotBlank()) {
