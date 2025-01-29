@@ -56,7 +56,7 @@ class OllamaService(
         var line: String?
         var contentLength = 0
 
-        // Read headers
+
         while (true) {
             line = reader.readLine()
             if (line == null || line.isEmpty()) break
@@ -66,14 +66,14 @@ class OllamaService(
             }
         }
 
-        // Read body
+
         if (contentLength > 0) {
             val buffer = CharArray(contentLength)
             reader.read(buffer, 0, contentLength)
             return String(buffer)
         }
 
-        // For chunked or unspecified length, read until connection closes
+
         return buildString {
             while (true) {
                 val char = reader.read()
@@ -100,14 +100,14 @@ class OllamaService(
             writer.print(request)
             writer.flush()
 
-            // Skip HTTP headers
+
             var line: String?
             while (true) {
                 line = reader.readLine()
                 if (line == null || line.isEmpty()) break
             }
 
-            // Read and emit streaming response
+
             while (true) {
                 line = reader.readLine()
                 if (line == null) break
@@ -120,7 +120,7 @@ class OllamaService(
                         }
                         if (response.done) break
                     } catch (e: Exception) {
-                        // Skip malformed JSON
+
                         continue
                     }
                 }
