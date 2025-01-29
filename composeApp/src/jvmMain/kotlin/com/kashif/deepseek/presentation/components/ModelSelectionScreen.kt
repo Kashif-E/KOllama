@@ -23,14 +23,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.kashif.deepseek.data.local.service.OllamaModel
 import compose.icons.FeatherIcons
 import compose.icons.feathericons.ChevronRight
 import compose.icons.feathericons.Cpu
 
 @Composable
 fun ModelSelectionScreen(
-    availableModels: List<String>,
-    onModelSelected: (String) -> Unit
+    availableModels: List<OllamaModel>,
+    onModelSelected: (OllamaModel) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -98,12 +99,12 @@ fun ModelSelectionScreen(
                     ) {
                         Column {
                             Text(
-                                model,
+                                model.name,
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                getModelDescription(model),
+                                model.details.family,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

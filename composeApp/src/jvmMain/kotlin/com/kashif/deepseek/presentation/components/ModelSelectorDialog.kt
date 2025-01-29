@@ -21,22 +21,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.kashif.deepseek.data.local.service.OllamaModel
 import com.kashif.deepseek.presentation.modifier.animatedBorder
+import com.kashif.deepseek.presentation.modifier.horizontalOffsetLayout
 import compose.icons.FeatherIcons
 import compose.icons.feathericons.Cpu
 
 @Composable
 fun ModelSelector(
-    selectedModel: String?,
-    availableModels: List<String>,
-    onModelSelect: (String) -> Unit
+    selectedModel: OllamaModel?,
+    availableModels: List<OllamaModel>,
+    onModelSelect: (OllamaModel) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val colorScheme = MaterialTheme.colorScheme
-
+    val marqueeOffset = with(LocalDensity.current) {
+        16.dp.roundToPx()
+    }
     Surface(
         onClick = { showDialog = true },
         shape = RoundedCornerShape(12.dp),
@@ -54,7 +58,7 @@ fun ModelSelector(
                 tint = colorScheme.primary
             )
             Text(
-                selectedModel ?: "Select Model",
+                selectedModel?.name ?: "Select Model",
                 color = colorScheme.primary
             )
             PulsatingDot(
@@ -101,7 +105,7 @@ fun ModelSelector(
                                 color = if (model == selectedModel)
                                     colorScheme.primary.copy(alpha = 0.1f)
                                 else
-                                    Color.Transparent,
+                                    colorScheme.primary.copy(0.035f),
                                 border = if (model == selectedModel)
                                     BorderStroke(1.dp, colorScheme.primary.copy(alpha = 0.2f))
                                 else
@@ -115,7 +119,7 @@ fun ModelSelector(
                                 ) {
                                     Column {
                                         Text(
-                                            model,
+                                            model.name,
                                             style = MaterialTheme.typography.titleMedium.copy(
                                                 color = if (model == selectedModel)
                                                     colorScheme.primary
@@ -123,10 +127,10 @@ fun ModelSelector(
                                                     colorScheme.onSurface
                                             )
                                         )
-                                        Text(
-                                            getModelDescription(model),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = colorScheme.onSurfaceVariant
+                                        ModelMarquee(
+                                            model,
+                                            modifier = Modifier.fillMaxWidth()
+                                                .horizontalOffsetLayout(marqueeOffset)
                                         )
                                     }
                                     if (model == selectedModel) {

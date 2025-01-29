@@ -122,14 +122,20 @@ internal fun ChatSidebar(
             }
 
         }
-        ButtonBackground(
-            modifier = Modifier.align(Alignment.BottomCenter).padding(vertical = 12.dp)
+        Box(
+            modifier = Modifier.align(Alignment.BottomCenter)
+                .background(MaterialTheme.colorScheme.surface),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                "Made with ❤️ by Kashif Mehmood",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(16.dp)
-            )
+            ButtonBackground(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(vertical = 12.dp)
+            ) {
+                Text(
+                    "Made with ❤️ by Kashif Mehmood",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
         }
     }
 }
