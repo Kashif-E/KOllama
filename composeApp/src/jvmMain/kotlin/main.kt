@@ -14,10 +14,9 @@ fun main() = application {
     startKoin { modules(appModule) }
     Window(
         title = "Kollama",
-        state = rememberWindowState(width = 800.dp, height = 600.dp),
+        state = rememberWindowState(width = 1080.dp, height = 765.dp),
         onCloseRequest = ::exitApplication,
     ) {
-        window.minimumSize = Dimension(1365, 1080)
         val viewModel = koinInject<ChatViewModel>()
         AppTheme {
             ChatScreen(
