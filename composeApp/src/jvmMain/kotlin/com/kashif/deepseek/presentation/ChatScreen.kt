@@ -98,7 +98,7 @@ private fun MainContent(
     onEvent: (ChatEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(modifier = modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
 
         Surface(
             color = MaterialTheme.colorScheme.surface,
@@ -159,8 +159,10 @@ private fun MainContent(
                 onSendMessage = { onEvent(ChatEvent.UserEvent.SendMessage(it)) },
                 enabled = !uiState.isLoading && uiState.thinkingMessage == null,
                 modifier = Modifier.padding(16.dp)
-            )
+            )   
         }
+
+        Text(text = "KOllama can make mistakes, so double check the generated contents.", fontSize = 12.sp, modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp))
     }
 }
 
