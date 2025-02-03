@@ -15,15 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.Typography
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -91,6 +83,7 @@ fun ChatScreen(
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainContent(
     uiState: ChatUiState,
@@ -112,18 +105,31 @@ private fun MainContent(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ModelSelector(
-                    selectedModel = uiState.selectedModel,
-                    availableModels = uiState.availableModels,
-                    onModelSelect = { onEvent(ChatEvent.UserEvent.SelectModel(it)) }
-                )
-
-                var isDark by LocalThemeIsDark.current
-                IconButton(onClick = { isDark = !isDark }) {
-                    Icon(
-                        if (isDark) FeatherIcons.Sun else FeatherIcons.Moon,
-                        contentDescription = "Toggle theme"
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = { PlainTooltip { Text("Select AI Model") } },
+                    state = rememberTooltipState()
+                ) {
+                    ModelSelector(
+                        selectedModel = uiState.selectedModel,
+                        availableModels = uiState.availableModels,
+                        onModelSelect = { onEvent(ChatEvent.UserEvent.SelectModel(it)) }
                     )
+
+                }
+
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = { PlainTooltip { Text("Toggle theme") } },
+                    state = rememberTooltipState()
+                ) {
+                    var isDark by LocalThemeIsDark.current
+                    IconButton(onClick = { isDark = !isDark }) {
+                        Icon(
+                            if (isDark) FeatherIcons.Sun else FeatherIcons.Moon,
+                            contentDescription = "Toggle theme"
+                        )
+                    }
                 }
             }
         }
@@ -159,10 +165,14 @@ private fun MainContent(
                 onSendMessage = { onEvent(ChatEvent.UserEvent.SendMessage(it)) },
                 enabled = !uiState.isLoading && uiState.thinkingMessage == null,
                 modifier = Modifier.padding(16.dp)
-            )   
+            )
         }
 
-        Text(text = "KOllama can make mistakes, so double check the generated contents.", fontSize = 12.sp, modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp))
+        Text(
+            text = "KOllama can make mistakes, so double check the generated contents.",
+            fontSize = 12.sp,
+            modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp)
+        )
     }
 }
 
@@ -401,6 +411,7 @@ fun rememberMarkdownTypography(
         )
     )
 }
+
 @Composable
 fun ButtonBackground(
     modifier: Modifier = Modifier,
