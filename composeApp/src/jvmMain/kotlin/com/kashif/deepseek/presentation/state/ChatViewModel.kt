@@ -99,7 +99,7 @@ class ChatViewModel(
                 val thinkingStack = mutableListOf<String>()
                 var isInThinkingBlock = false
 
-                ollamaService.chat(model, content)
+                ollamaService.chat(model, content, session.id)
                     .catch { e ->
                         updateMessage(assistantMessage.copy(status = MessageStatus.ERROR))
                         throw e
