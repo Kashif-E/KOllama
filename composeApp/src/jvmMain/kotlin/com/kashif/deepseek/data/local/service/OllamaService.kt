@@ -5,11 +5,7 @@ import com.kashif.deepseek.data.model.OllamaModelsResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.buffer
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.BufferedReader
@@ -25,8 +21,8 @@ import java.nio.charset.StandardCharsets
 data class OllamaConfig(
     val host: String = "localhost",
     val port: Int = 11434,
-    val connectionTimeout: Int = 10000,
-    val readTimeout: Int = 30000,
+    val connectionTimeout: Int = 30000,  // 30 seconds for connection
+    val readTimeout: Int = 120000,       // 2 minutes for read operations
     val maxContentLength: Int = 10 * 1024 * 1024,
     val maxRetries: Int = 3,
     val bufferSize: Int = 8192
@@ -57,7 +53,7 @@ sealed class OllamaError : Exception() {
 class OllamaService(
     private val config: OllamaConfig = OllamaConfig()
 ) {
-    private val logger = { it: String -> println(it) }
+    private val logger = { it: String -> println("[OllamaService] $it") }
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -65,11 +61,25 @@ class OllamaService(
         explicitNulls = false
     }
 
+    private data class SocketConnection(
+        var socket: Socket? = null,
+        var writer: PrintWriter? = null,
+        var reader: BufferedReader? = null,
+        var session: ChatSession = ChatSession()
+    ) {
+        override fun toString(): String =
+            "Socket[connected=${socket?.isConnected}, closed=${socket?.isClosed}]"
+    }
+
+    private val chatSessions = mutableMapOf<String, SocketConnection>()
+
     /**
      * Creates a configured socket with timeout settings
      */
     private fun createSocket(): Socket = Socket().apply {
         soTimeout = config.readTimeout
+        keepAlive = true
+        tcpNoDelay = true
         connect(InetSocketAddress(config.host, config.port), config.connectionTimeout)
     }
 
@@ -105,7 +115,6 @@ class OllamaService(
      */
     private fun extractResponseBody(reader: BufferedReader): String {
         var contentLength = 0
-
 
         while (true) {
             val line = reader.readLine() ?: break
@@ -144,76 +153,75 @@ class OllamaService(
         onResponse: suspend (String) -> Unit
     ) {
         var line: String?
-        val responseBuffer = StringBuilder()
-
+        var isFirstResponse = true
+        var isDone = false
 
         while (true) {
-            line = withContext(Dispatchers.IO) {
-                reader.readLine()
-            }
-            if (line.isNullOrEmpty()) break
+            line = withContext(Dispatchers.IO) { reader.readLine() }
+            if (line == null || line.isEmpty()) break
+            logger("Read header line: $line")
         }
 
+        logger("Headers completed, reading response body...")
 
-        while (true) {
-            line = withContext(Dispatchers.IO) {
-                reader.readLine()
-            }
-            if (line == null) break
+        try {
+            while (!isDone) {
+                line = withContext(Dispatchers.IO) { reader.readLine() }
+                if (line == null) break
 
-            if (line.isNotBlank()) {
-                try {
+                if (line.isBlank()) continue
 
-                    if (line.matches("[0-9a-fA-F]+".toRegex())) {
-                        val decodedBytes = line.chunked(2)
-                            .map { it.toInt(16).toByte() }
-                            .toByteArray()
-                        val decodedString = String(decodedBytes, Charsets.UTF_8)
-                        responseBuffer.append(decodedString)
-
-
-                        val bufferContent = responseBuffer.toString()
-                        var jsonStart = bufferContent.indexOf('{')
-                        var jsonEnd = bufferContent.indexOf('}', jsonStart)
-
-                        while (jsonStart >= 0 && jsonEnd >= 0) {
-                            val jsonStr = bufferContent.substring(jsonStart, jsonEnd + 1)
-                            try {
-                                val response =
-                                    json.decodeFromString(ChatResponse.serializer(), jsonStr)
-                                response.response?.takeIf { it.isNotBlank() }?.let {
-                                    onResponse(it)
-                                }
-                                if (response.done) return
-
-
-                                responseBuffer.delete(0, jsonEnd + 1)
-
-
-                                val remainingContent = responseBuffer.toString()
-                                jsonStart = remainingContent.indexOf('{')
-                                jsonEnd = if (jsonStart >= 0) remainingContent.indexOf(
-                                    '}',
-                                    jsonStart
-                                ) else -1
-                            } catch (e: Exception) {
-
-                                break
+                if (line.matches(Regex("[0-9a-fA-F]+")) && line != "0") {
+                    val chunkSize = line.toInt(16)
+                    if (chunkSize > 0) {
+                        val chunk = CharArray(chunkSize)
+                        var bytesRead = 0
+                        while (bytesRead < chunkSize) {
+                            val count = withContext(Dispatchers.IO) {
+                                reader.read(chunk, bytesRead, chunkSize - bytesRead)
                             }
+                            if (count == -1) break
+                            bytesRead += count
                         }
-                    } else {
+                        val currentChunk = String(chunk)
 
-                        val response = json.decodeFromString(ChatResponse.serializer(), line)
-                        response.response?.takeIf { it.isNotBlank() }?.let {
-                            onResponse(it)
+                        withContext(Dispatchers.IO) { reader.readLine() }
+
+                        try {
+                            if (currentChunk.startsWith("{")) {
+                                val response = json.decodeFromString<ChatResponse>(currentChunk)
+
+                                if (isFirstResponse) {
+                                    onResponse("</think>")
+                                    isFirstResponse = false
+                                }
+
+                                val content = response.message?.content
+                                if (!content.isNullOrBlank()) {
+                                    onResponse(content)
+                                }
+
+                                if (response.done) {
+                                    isDone = true
+                                    break
+                                }
+                            }
+                        } catch (e: Exception) {
+                            logger("Error processing chunk: ${e.message}")
                         }
-                        if (response.done) break
                     }
-                } catch (e: Exception) {
-                    logger.invoke("Failed to process response chunk: ${e.message}")
-                    continue
+                } else if (line == "0") {
+                    break
                 }
             }
+
+            while (reader.ready()) {
+                reader.read()
+            }
+
+        } catch (e: Exception) {
+            logger("Error reading response: ${e.message}")
+            throw e
         }
     }
 
@@ -248,40 +256,126 @@ class OllamaService(
     /**
      * Initiates a chat session with the specified model
      */
-    fun chat(model: String, prompt: String): Flow<String> = flow {
+    fun chat(model: String, prompt: String, sessionId: String): Flow<String> = flow {
         executeWithRetry("chat") {
-            createSocket().use { socket ->
-                val writer = PrintWriter(socket.getOutputStream().buffered())
-                val reader = BufferedReader(socket.getInputStream().reader())
+            val connection = chatSessions.getOrPut(sessionId) {
+                logger("Creating new connection for session: $sessionId")
+                SocketConnection()
+            }
 
-                val chatRequest = ChatRequest(model, prompt)
+            try {
+                if (connection.socket == null || connection.socket?.isClosed == true || !connection.socket?.isConnected!!) {
+                    logger("Connection needs reset for session $sessionId: $connection")
+                    val oldSession = connection.session
+                    closeConnection(sessionId, clearHistory = false)
+                    connection.socket = createSocket()
+                    connection.writer =
+                        PrintWriter(connection.socket!!.getOutputStream().buffered())
+                    connection.reader =
+                        BufferedReader(connection.socket!!.getInputStream().reader(Charsets.UTF_8))
+                    connection.session = oldSession
+                    logger("New connection established: $connection")
+                } else {
+                    logger("Reusing existing connection: $connection")
+                }
+
+                val newMessage = Message(role = "user", content = prompt)
+                connection.session.messages.add(newMessage)
+
+                val chatRequest = ChatRequest(
+                    model = model,
+                    messages = connection.session.messages.toList(),
+                    stream = true,
+                    context = connection.session.context
+                )
                 val requestBody = json.encodeToString(ChatRequest.serializer(), chatRequest)
+                logger("Prepared request body with ${connection.session.messages.size} messages...")
 
                 val request = buildHttpRequest(
                     method = "POST",
-                    path = "/api/generate",
-                    body = requestBody
+                    path = "/api/chat",
+                    body = requestBody,
+                    headers = mapOf(
+                        "Accept" to "application/x-ndjson",
+                        "Content-Type" to "application/json"
+                    )
                 )
 
-                logger("Sending chat request for model: $model")
-                writer.print(request)
-                writer.flush()
+                logger("Sending chat request for model: $model in session: $sessionId")
+                connection.writer?.print(request)
+                connection.writer?.flush()
 
-                processResponse(reader) { response ->
+                emit("<think>Thinking...</think>")
+
+                var assistantMessage = Message(role = "assistant", content = "")
+                processResponse(connection.reader!!) { response ->
                     emit(response)
+                    assistantMessage =
+                        assistantMessage.copy(content = assistantMessage.content + response)
                 }
+
+                connection.session.messages.add(assistantMessage)
+                connection.session.context = chatRequest.context
+
+                logger("Chat request completed successfully")
+            } catch (e: Exception) {
+                logger("Error during chat request: ${e.message}")
+                closeConnection(sessionId)
+                throw e
             }
         }
     }
         .buffer(Channel.BUFFERED)
         .flowOn(Dispatchers.IO)
         .catch { e ->
-            logger("Error in chat flow")
+            logger("Error in chat flow for session: $sessionId - ${e.message}")
+            closeConnection(sessionId)
             throw when (e) {
-                is IOException -> OllamaError.ConnectionError("Network error during chat", e)
+                is IOException -> OllamaError.ConnectionError(
+                    "Network error during chat: ${e.message}",
+                    e
+                )
+
                 else -> e
             }
         }
+
+    private fun closeConnection(sessionId: String, clearHistory: Boolean = true) {
+        try {
+            logger("Closing connection for session: $sessionId")
+            chatSessions[sessionId]?.let { connection ->
+                try {
+                    connection.reader?.let { reader ->
+                        while (reader.ready()) {
+                            reader.read()
+                        }
+                    }
+                } catch (e: Exception) {
+                    logger("Error consuming remaining data: ${e.message}")
+                }
+                connection.writer?.close()
+                connection.reader?.close()
+                connection.socket?.close()
+                if (clearHistory) {
+                    chatSessions.remove(sessionId)
+                    logger("Connection closed and removed from sessions")
+                } else {
+                    connection.socket = null
+                    connection.writer = null
+                    connection.reader = null
+                    logger("Connection closed but keeping session history")
+                }
+            }
+        } catch (e: Exception) {
+            logger("Error closing connection for session $sessionId: ${e.message}")
+        }
+    }
+
+    fun closeAllConnections() {
+        chatSessions.keys.toList().forEach { sessionId ->
+            closeConnection(sessionId)
+        }
+    }
 
     /**
      * Lists available models
@@ -389,6 +483,6 @@ class OllamaService(
                         json.decodeFromString(OllamaModel.serializer(), response)
                     }
                 }
+            }
         }
-    }
 }
