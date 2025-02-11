@@ -1,4 +1,4 @@
-rootProject.name = "DeepSeekR1"
+rootProject.name = "Kollama"
 
 pluginManagement {
     repositories {

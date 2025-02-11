@@ -1,31 +1,38 @@
 # Kollama
 
-Kollama is a modern, desktop chat interface for Ollama models built with Kotlin and Jetpack Compose for Desktop. It provides a sleek, user-friendly way to interact with local AI models while offering advanced features like code formatting, markdown support, and animated UI elements.
+Kollama is a modern, cross-platform chat interface for Ollama models built with Kotlin Multiplatform and Compose Multiplatform. It provides a sleek, user-friendly way to interact with local AI models while offering advanced features like code formatting, markdown support, and animated UI elements.
 
 ## Features
 
-- 🚀 **Modern Desktop UI**: Built with Compose for Desktop for a native, responsive experience
-- 💬 **Real-time Chat Interface**: Smooth, chat-like interaction with AI models
-- 🎨 **Rich Markdown Support**: Full markdown rendering including:
-    - Syntax-highlighted code blocks
-    - Tables
-    - Lists and task lists
-    - Blockquotes
-    - Headers and formatting
+- 🚀 **Cross-Platform Support**: Built with Kotlin Multiplatform and Compose Multiplatform
+- 💬 **Real-time Chat Interface**:
+  - Streaming responses with real-time updates
+  - Concurrent chat support with efficient job management
+  - Smart session handling with LRU cache
+- 🎨 **Rich Markdown Support**:
+  - Syntax-highlighted code blocks with customizable themes
+  - Tables and complex formatting
+  - Custom typography system
+  - Optimized rendering for large messages
 - 🔄 **Advanced Message Handling**:
-    - Real-time message streaming
-    - Message retry functionality
-    - Copy to clipboard support
-    - Message status indicators
-- 💾 **Persistent Storage**: Local SQLite database for chat history using Room
-- 🎯 **Multiple Model Support**: Switch between different Ollama models seamlessly
-- 🎭 **Dark/Light Theme**: Automatic theme switching with animated transitions
-- ✨ **Polished UI Elements**:
-    - Animated message borders
-    - Pulsating status indicators
-    - Smooth transitions and animations
-    - Responsive layout
-
+  - Real-time message streaming with state management
+  - Robust error handling and retry mechanism
+  - Optimized clipboard operations
+  - Sophisticated message state tracking
+- 💾 **Persistent Storage**:
+  - SQLDelight for efficient, type-safe SQL operations
+  - Cross-platform database support
+  - Optimized query performance
+- 🎯 **Advanced Model Integration**:
+  - Dynamic model switching with state preservation
+  - Model details display with animated marquee
+  - Real-time model status indicators
+- 🎭 **Polished UI/UX**:
+  - Animated right sheet with gesture support
+  - Custom animated borders and transitions
+  - Fluid dark/light theme switching
+  - Responsive layout with efficient recomposition
+  - Pulsating status indicators and loading states
 
 ## Screenshots
 
@@ -34,82 +41,109 @@ Kollama is a modern, desktop chat interface for Ollama models built with Kotlin 
 ![art3.png](art/art3.png)
 ![art4.png](art/art4.png)
 
-## Mack Installer
-
-https://drive.google.com/file/d/11_hz3-sKSTjTnqQ3wgwt7qI8EBqSQcwV/view?usp=sharing
-
 ## Prerequisites
 
 - JDK 17 or higher
-- Ollama installed and running on your machine, app uses tcp to communicate with Ollama
+- Ollama installed and running (default: localhost:11434)
 - At least one Ollama model downloaded
 
 ## Getting Started
 
-1. Install Ollama following the instructions at [Ollama's official website](https://ollama.ai)
-2. Pull at least one model using Ollama CLI:
+1. Install Ollama from [Ollama's official website](https://ollama.ai)
+2. Pull a model using Ollama CLI:
    ```bash
-   ollama run deepseek-r1:1.5b
+   ollama pull deepseek-coder:33b
    ```
 3. Clone this repository:
    ```bash
    git clone https://github.com/kashif-e/kollama.git
    ```
-4. Build and run using Gradle:
+4. Run using Gradle:
    ```bash
    ./gradlew run
    ```
 
 ## Architecture
 
-Kollama follows clean architecture principles and is organized into the following layers:
+Kollama follows clean architecture principles with a focus on modularity and testability:
 
-- **Presentation**: Compose UI components and ViewModels
-- **Domain**: Business logic and model definitions
-- **Data**: Repository implementations and local database
-- **DI**: Dependency injection using Koin
+### Core Components
 
-### Key Components
+- **Presentation Layer**:
+  - `ChatViewModel`: Manages UI state and user interactions
+  - `ChatScreen`: Main UI composition
+  - Custom composables for reusable UI elements
+  - Advanced state management with Kotlin Flow
 
-- `ChatViewModel`: Manages chat state and user interactions
-- `OllamaService`: Handles communication with Ollama models
-- `ChatDatabase`: Local storage using Room
-- `MarkdownFormatting`: Custom markdown processing and formatting
+- **Domain Layer**:
+  - Pure Kotlin models for type safety
+  - Repository interfaces for data abstraction
+  - Clear separation of concerns
 
-## Technical Features
+- **Data Layer**:
+  - `ChatRepository`: Implementation of data operations
+  - `OllamaService`: Handles AI model communication
+  - `DatabaseWrapper`: SQLDelight database operations
+  - Efficient data mapping and transformation
 
-### Database
+- **Infrastructure**:
+  - Koin for dependency injection
+  - SQLDelight for database operations
+  - Ktor for network communications
 
-- Room database for persistent storage
-- Entities for chat sessions and messages
-- Foreign key relationships for data integrity
+### Key Technical Features
 
-### UI Components
+#### State Management
+```kotlin
+data class ChatUiState(
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val currentSession: ChatSessionDomainModel? = null,
+    val chatSessions: List<ChatSessionDomainModel> = emptyList(),
+    val selectedModel: OllamaModel? = null,
+    val availableModels: List<OllamaModel> = emptyList(),
+    val thinkingMessage: ChatMessageDomainModel? = null,
+    val showModelList: Boolean = false,
+)
+```
 
-- Custom composables for chat bubbles, model selection, and more
-- Animated modifiers for enhanced visual feedback
-- Markdown rendering with customizable typography
+#### Efficient Job Management
+```kotlin
+class ChatJobManager {
+    private val mutex = Mutex()
+    private val jobMap: MutableMap<String, JobState> = mutableMapOf()
+    private val lruList = DoublyLinkedList<String>()
+    
+    // Manages concurrent chat sessions with LRU caching
+}
+```
 
-### State Management
+#### Custom UI Components
+```kotlin
+@Composable
+fun AnimatedBorderBox(
+    borderColors: List<Color>,
+    backgroundColor: Color,
+    shape: Shape = RectangleShape,
+    borderWidth: Dp = 1.dp,
+    animationDurationInMillis: Int = 3000,
+    content: @Composable BoxScope.() -> Unit
+)
+```
 
-- Kotlin Flow for reactive state updates
-- ViewModel for UI state management
-- Coroutines for asynchronous operations
-
-## Development
-
-### Project Structure
+## Project Structure
 
 ```
 kollama/
 ├── data/
 │   ├── local/
-│   │   ├── dao/
-│   │   └── database/
-│   └── repository/
-├── domain/
+│   │   ├── database/
+│   │   └── service/
 │   ├── model/
 │   └── repository/
+├── domain/
+│   ├── interfaces/
+│   └── model/
 ├── presentation/
 │   ├── components/
 │   ├── modifier/
@@ -118,37 +152,25 @@ kollama/
 └── di/
 ```
 
-### Building
+## Advanced Features
 
-```bash
-# Build the project
-./gradlew build
+### Custom Animations
+- Animated message borders with gradient effects
+- Pulsating status indicators
+- Smooth sheet transitions with gesture support
+- Marquee animations for model details
 
-# Run the application
-./gradlew run
+### Performance Optimizations
+- Efficient recomposition with remember/derivedStateOf
+- Smart job management for concurrent chats
+- Optimized database operations
+- Proper coroutine scope management
 
-# Create distribution
-./gradlew createDistribution
-```
-
-## Customization
-
-### Model Configuration
-
-Configure Ollama model settings in `OllamaService.kt`:
-
-```kotlin
-fun setGpuLayers(layers: Int)
-fun setCudaDevices(devices: String)
-fun setMaxRamUsage(ramMb: Int)
-fun setMaxGpuMemory(memoryMb: Int)
-```
-
-### UI Customization
-
-- Modify themes in `theme` package
-- Customize markdown styles in `rememberMarkdownTypography`
-- Adjust animations in `AnimatedModifier.kt`
+### Network & Error Handling
+- Robust error handling with custom error types
+- Retry mechanisms for failed requests
+- Proper timeout and cancellation handling
+- Stream processing for real-time updates
 
 ## Contributing
 
@@ -158,10 +180,10 @@ fun setMaxGpuMemory(memoryMb: Int)
 4. Push to the branch
 5. Create a Pull Request
 
-
 ## Acknowledgments
 
-- [Jetpack Compose for Desktop](https://www.jetbrains.com/lp/compose-desktop/)
+- [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html)
+- [Compose Multiplatform](https://www.jetbrains.com/lp/compose-multiplatform/)
 - [Ollama](https://ollama.ai)
-- [Room](https://developer.android.com/jetpack/androidx/releases/room)
+- [SQLDelight](https://cashapp.github.io/sqldelight/)
 - [Koin](https://insert-koin.io)
