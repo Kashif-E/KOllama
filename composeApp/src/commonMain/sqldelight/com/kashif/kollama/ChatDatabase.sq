@@ -1,0 +1,50 @@
+CREATE TABLE IF NOT EXISTS ChatSession (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    lastModified INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ChatMessage (
+    id TEXT NOT NULL PRIMARY KEY,
+    sessionId TEXT NOT NULL,
+    content TEXT NOT NULL,
+    isUser INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    FOREIGN KEY (sessionId) REFERENCES ChatSession(id) ON DELETE CASCADE
+);
+-- Queries for ChatSession
+selectAllSessions:
+SELECT *
+FROM ChatSession
+ORDER BY lastModified DESC;
+
+insertSession:
+INSERT INTO ChatSession(id, title, createdAt, lastModified)
+VALUES (?, ?, ?, ?);
+
+updateSession:
+UPDATE ChatSession
+SET title = ?, lastModified = ?
+WHERE id = ?;
+
+deleteSession:
+DELETE FROM ChatSession
+WHERE id = ?;
+
+-- Queries for ChatMessage
+selectMessagesBySession:
+SELECT *
+FROM ChatMessage
+WHERE sessionId = ?
+ORDER BY timestamp ASC;
+
+insertMessage:
+INSERT INTO ChatMessage(id, sessionId, content, isUser, status, timestamp)
+VALUES (?, ?, ?, ?, ?, ?);
+
+updateMessage:
+UPDATE ChatMessage
+SET content = ?, status = ?
+WHERE id = ?;

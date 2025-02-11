@@ -1,27 +1,29 @@
+import androidx.compose.desktop.ui.tooling.preview.Preview
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import com.kashif.deepseek.di.appModule
-import com.kashif.deepseek.presentation.ChatScreen
-import com.kashif.deepseek.presentation.state.ChatViewModel
-import com.kashif.deepseek.presentation.theme.AppTheme
-import org.koin.compose.koinInject
-import org.koin.core.context.startKoin
 import java.awt.Dimension
+import com.kashif.kollama.App
+import java.io.File
 
 fun main() = application {
-    startKoin { modules(appModule) }
     Window(
         title = "Kollama",
-        state = rememberWindowState(width = 1080.dp, height = 765.dp),
+        state = rememberWindowState(width = 800.dp, height = 600.dp),
         onCloseRequest = ::exitApplication,
     ) {
-        val viewModel = koinInject<ChatViewModel>()
-        AppTheme {
-            ChatScreen(
-              viewModel = viewModel
-            )
+        val dbDir = File(System.getProperty("user.home"))
+        if (!dbDir.exists()) {
+            dbDir.mkdirs()
         }
+
+        window.minimumSize = Dimension(350, 600)
+        App()
     }
 }
+
+@Preview
+@Composable
+fun AppPreview() { App() }
